@@ -1,44 +1,49 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
-/*
-**
-** Copyright 2010, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-*/
--->
+package rkr.simplekeyboard.inputmethod.keyboard.internal;
 
-<merge
-    xmlns:latin="http://schemas.android.com/apk/res-auto"
- >
-    <Row
-        latin:keyWidth="10%p"
-    >
-        <Key
-            latin:keyStyle="toSymbolKeyStyle"
-            latin:keyWidth="15%p" />
-        <Key
-            latin:keySpec="!code/key_kcopy"
-            latin:keyWidth="11%p" />
-        <include
-            latin:keyboardLayout="@xml/key_space_5kw" />
-        <Key
-            latin:keySpec="!code/key_kpaste"
-            latin:keyWidth="11%p" />
-        <include
-            latin:keyboardLayout="@xml/key_period" />
-        <Key
-            latin:keyStyle="enterKeyStyle"
-            latin:keyWidth="fillRight" />
-    </Row>
-</merge>
+import android.content.res.Resources;
+
+public final class BogusMoveEventDetector {
+    private static boolean sNeedsProximateBogusDownMoveUpEventHack;
+
+    public static void init(final Resources res) {
+        sNeedsProximateBogusDownMoveUpEventHack = false;
+    }
+
+    private int mAccumulatedDistanceThreshold;
+    int mAccumulatedDistanceFromDownKey;
+    private int mActualDownX;
+    private int mActualDownY;
+
+    public void setKeyboardGeometry(final int keyPaddedWidth, final int keyPaddedHeight) {
+        mAccumulatedDistanceThreshold = 0;
+    }
+
+    public void onActualDownEvent(final int x, final int y) {
+        mActualDownX = x;
+        mActualDownY = y;
+    }
+
+    public void onDownKey() {
+        mAccumulatedDistanceFromDownKey = 0;
+    }
+
+    public void onMoveKey(final int distance) {
+        mAccumulatedDistanceFromDownKey += distance;
+    }
+
+    public boolean hasTraveledLongDistance(final int x, final int y) {
+        if (!sNeedsProximateBogusDownMoveUpEventHack) {
+            return false;
+        }
+        if (mAccumulatedDistanceThreshold <= 0) {
+            return false;
+        }
+        final int dx = Math.abs(x - mActualDownX);
+        final int dy = Math.abs(y - mActualDownY);
+        return dx >= dy && mAccumulatedDistanceFromDownKey >= mAccumulatedDistanceThreshold;
+    }
+
+    public int getAccumulatedDistanceFromDownKey() {
+        return mAccumulatedDistanceFromDownKey;
+    }
+}
